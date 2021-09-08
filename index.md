@@ -1,37 +1,102 @@
-## Welcome to GitHub Pages
+## SQL FUNCTIONS
 
-You can use the [editor on GitHub](https://github.com/dayana-stroshine/DBFoundations-Module07/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+### INTRODUCTION
+Functions are very helpful resources in SQL. There are a variety of built-in functions that a developer can use such as aggregate functions (MAX, MIN, SUM, etc.) as well as DATE functions or NULL. If these functions aren’t able to provide what the developer needs, there also exists the option to create UDFs or User Defined Functions. These functions are custom builts by the user and can result in anything from a single result to a table of results. This brief summary will review these custom functions and provide example use cases of each.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+### WHEN WOULD ONE USE A SQL UDF?
+A User Defined Function is a function that is custom built by a user. These functions are used when a developer needs to perform a function that is not available in the built-in functions. There are two types of UDFs, functions that return a table of values(table-valued) and functions that return a single value (scalar). 
 
-### Markdown
+### WHAT ARE THE DIFFERENCES AND SIMILARITIES BETWEEN A SCALAR, INLINE, AND MULTI-STATEMENT FUNCTION?
+As mentioned above, all three of these functions are UDFs and can be adjusted by the developer as needed. A scalar function returns a single value of any data type. As shown below, scalar functions need BEGIN and END statements in order to run and they do not select FROM a specific table. This example returns a single value of 9.
+ 
+```
+--create the function
+GO
+CREATE FUNCTION dbo.fFunctionName(@value1 INT, @value2 INT)
+RETURNS INT
+AS 
+BEGIN
+    RETURN(@value1 + @value2)
+END
+GO
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+-- call the function
+SELECT dbo.fFunctionName(2,7)
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+An inline function and a multi-statement function are both considered table-valued functions, which means they return a table of values and both select FROM a table or tables. Inline functions and multi-statement functions differ in what they return. Inline functions return a single set of rows, while multi-select functions return values from multiple tables. Below is an example of an inline function. Inline functions take a value input, similar to scalar functions, but return a table rather than a data type. The table consists of a SELECT statement that encompases the declared value in it’s logic.
 
-### Jekyll Themes
+```
+--create the function
+GO
+CREATE FUNCTION dbo.fFunctionName
+(
+    @value MONEY
+)
+RETURNS TABLE 
+AS 
+RETURN
+    SELECT 
+         ProductName
+        ,UnitPrice
+    FROM
+        dbo.vProducts
+    WHERE
+        UnitPrice > @value
+GO
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/dayana-stroshine/DBFoundations-Module07/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+-- call the function
+SELECT * FROM fFunctionName(25)
+```
 
-### Support or Contact
+Lastly, multi-select statements are used when a developer wants to incorporate additional logic into a function and return a new table or value. Below we see the table @Threshold is returned with the values ‘above’ and ‘below’ in the Threshold field to identify the threshold on each row based on the unit price. Multi-select functions use the INSERT INTO statements to bring new fields based on logic using the declared value.
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+```
+--create the function
+GO
+CREATE FUNCTION dbo.fFunctionName
+(
+    @value MONEY
+)
+RETURNS @Threshold TABLE(
+     ProductName VARCHAR(50)
+    ,UnitPrice VARCHAR(50)
+    ,Threshold VARCHAR(50)
+) 
+AS 
+    BEGIN
+    INSERT INTO @Threshold(
+        ProductName
+        ,UnitPrice
+        ,Threshold
+    )
+    SELECT
+        ProductName
+        ,UnitPrice
+        ,'Above'
+    FROM vProducts
+    WHERE UnitPrice > @value
+
+    INSERT INTO @Threshold(
+        ProductName
+        ,UnitPrice
+        ,Threshold
+    )
+    SELECT
+        ProductName
+        ,UnitPrice
+        ,'Below'
+    FROM vProducts
+    WHERE UnitPrice <= @value
+    RETURN
+    END
+GO
+
+-- call the function
+SELECT * FROM fFunctionName(25) ORDER BY ProductName
+```
+
+### SUMMARY
+In summary, functions are a helpful tool to use when needing to manipulate, dynamically filter, or change data. The built-in functions are great at helping to aggregate, standardize, and organize data and if but if they do not help to solve the immediate problem, using UDFs is also an excellent way to create custom functionality for all purposes.
+
+
